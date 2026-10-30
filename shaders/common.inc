@@ -52,6 +52,7 @@
 #pragma parameter DC_HAZE "Base haze" 0.2 0.0 1.0 0.05
 #pragma parameter DC_FOG_MOON "Fog moon glow" 0.6 0.0 3.0 0.05
 #pragma parameter DC_FOG_LIGHTS "Fog light halos" 0.8 0.0 3.0 0.05
+#pragma parameter DC_FOG_EDGE "Draw distance fade" 1.0 0.0 1.0 0.05
 #pragma parameter DC_GROUND_FOG "Ground mist" 0.35 0.0 2.0 0.05
 #pragma parameter DC_GROUND_HEIGHT "Ground mist height" 250.0 25.0 2000.0 25.0
 #pragma parameter DC_MIST_NOISE "Mist patches" 0.6 0.0 1.0 0.05
@@ -134,6 +135,7 @@ layout(std140, set = 0, binding = 0) uniform UBO
     float DC_HAZE;
     float DC_FOG_MOON;
     float DC_FOG_LIGHTS;
+    float DC_FOG_EDGE;
     float DC_GROUND_FOG;
     float DC_GROUND_HEIGHT;
     float DC_MIST_NOISE;

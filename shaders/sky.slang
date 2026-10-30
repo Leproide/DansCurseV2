@@ -6,7 +6,7 @@
 //
 // Uscita 4x1, ogni texel si aggiorna lentamente rispetto al frame precedente:
 //  0: colore medio del cielo visibile, a = apertura (0 interno, 1 esterno)
-//  1: z = quota di schermo occupata dalla scena
+//  1: x = distanza massima della geometria (limite di disegno), y = quota di vuoto, z = quota di scena
 //  2: x = altezza del pavimento nel mondo (Y verso il basso), y = valida
 //  3: colore stabile per la nebbia: cambia solo quando si vede abbastanza cielo
 // Nella V1 il colore della nebbia veniva dalla media dello schermo (anche dai muri quando il
@@ -38,6 +38,8 @@ struct Survey
     float geometry;
     float floorY;
     float floorWeight;
+    float far;
+    float samples;
 };
 
 Survey survey()
@@ -52,6 +54,8 @@ Survey survey()
     s.geometry = 0.0;
     s.floorY = 0.0;
     s.floorWeight = 0.0;
+    s.far = 0.0;
+    s.samples = 0.0;
 
     for (int y = 0; y < GRID_Y; y++)
     for (int x = 0; x < GRID_X; x++)
@@ -62,6 +66,8 @@ Survey survey()
 
         bool geometry = hasGeometry(d);
         vec3 c = toLinear(texture(Original, uv).rgb);
+        s.samples += 1.0;
+        if (geometry) s.far = max(s.far, viewPos(uv, d).z);
 
         if (uv.y < UPPER)
         {
@@ -118,7 +124,14 @@ void main()
     if (vTexCoord.x < 0.5)
     {
         float presence = s.geometry / float(GRID_X * GRID_Y);
-        FragColor = vec4(0.0, 0.0, hasPrevious ? mix(previous.z, presence, 0.35) : presence, 1.0);
+        float empty = s.samples > 0.0 ? 1.0 - s.geometry / s.samples : 0.0;
+        if (!hasPrevious) FragColor = vec4(s.far, empty, presence, 1.0);
+        else
+        {
+            // il limite di disegno sale piano e scende in fretta (porte, svolte)
+            float far = s.far > previous.x ? mix(previous.x, s.far, 0.05) : mix(previous.x, s.far, 0.25);
+            FragColor = vec4(far, mix(previous.y, empty, 0.05), mix(previous.z, presence, 0.35), 1.0);
+        }
         return;
     }
 

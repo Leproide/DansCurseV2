@@ -338,12 +338,23 @@ Fog computeFog(vec3 dir, float dist, bool sky, float indoor, vec3 fogColor, vec3
     float haze = (1.0 - exp(-dist * density * 0.00005)) * global.DC_HAZE;
     float amount = max(distanceFog, haze);
 
+    // Limite di disegno: il gioco disegna il terreno a blocchi fino a una certa distanza e
+    // nasconde il taglio sfumando al nero. Con una nebbia chiara i bordi dei blocchi e il
+    // vuoto dietro diventano figure squadrate: qui la geometria vicina al limite e il vuoto
+    // sotto l'orizzonte arrivano allo stesso colore della nebbia. Solo se sullo schermo c'e'
+    // del vuoto (scene aperte): in una stanza chiusa i muri in fondo non vanno nascosti.
+    vec4 extent = texture(Sky, SCENE_TEXEL);
+    float open = smoothstep(0.02, 0.1, extent.y) * global.DC_FOG_EDGE;
+    float far = extent.x;
+    if (!sky && far > 500.0)
+        amount = max(amount, smoothstep(far * 0.6, far * 0.97, dist) * open);
+
     if (sky)
     {
-        // cielo: nebbia verso l'orizzonte, in base a quanto il raggio punta in alto
+        // cielo: poca nebbia in alto, piena verso l'orizzonte e nel vuoto sotto di esso
         float up = -ray.y;
-        float horizon = 1.0 - smoothstep(-0.05, 0.45, up);
-        amount = global.DC_FOG_SKY * mix(0.2, 1.0, horizon);
+        float horizon = 1.0 - smoothstep(-0.02, 0.3, up);
+        amount = mix(global.DC_FOG_SKY * 0.3, max(global.DC_FOG_SKY, open), horizon);
     }
 
     float ground = mist(ray, sky ? 6000.0 : dist);
