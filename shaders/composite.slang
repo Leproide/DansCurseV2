@@ -287,8 +287,10 @@ float mist(vec3 ray, float dist)
     float dh = (hp - he) * k;
     float average = abs(dh) > 1e-3 ? (fe - fp) / dh : fe;
 
+    // la foschia comincia a DC_MIST_START: intorno al personaggio l'aria resta pulita
+    float through = max(dist - global.DC_MIST_START, 0.0);
     float patches = 0.5 * (mistPatches(eye + ray * min(dist, 1800.0) * 0.5) + mistPatches(target));
-    float optical = average * dist * global.DC_GROUND_FOG * 0.0006 * patches;
+    float optical = average * through * global.DC_GROUND_FOG * 0.0006 * patches;
     return 1.0 - exp(-optical);
 }
 
@@ -334,7 +336,7 @@ Fog computeFog(vec3 dir, float dist, bool sky, float indoor, vec3 fogColor, vec3
         start = mix(start, min(start, global.SceneFogRange.x), global.DC_GAME_LIGHT);
     float end = max(global.DC_FOG_END * mix(1.0, 0.85, cave), start + 100.0);
     float distanceFog = clamp((dist - start) / (end - start), 0.0, 1.0) * global.DC_FOG;
-    float haze = (1.0 - exp(-dist * 0.00005)) * global.DC_HAZE;
+    float haze = (1.0 - exp(-max(dist - global.DC_MIST_START, 0.0) * 0.00005)) * global.DC_HAZE;
     float amount = max(distanceFog, haze);
 
     // Limite di disegno: il gioco disegna il terreno a blocchi fino a una certa distanza e

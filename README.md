@@ -23,6 +23,7 @@ A mano: copia la cartella del repository in `shaders/dans-curse-v2/` accanto all
 - Colore stabile: viene dal cielo visibile e cambia solo quando il cielo si vede bene. Nell'originale era la media dello schermo, quindi diventava il colore dei muri appena il cielo usciva dall'inquadratura.
 - Luminosità regolabile (**Fog brightness**). Nell'originale era limitata a un valore fisso molto basso e in lontananza la nebbia diventava quasi nera.
 - Foschia a terra appoggiata al pavimento: la quota del pavimento viene stimata dalle superfici visibili e la densità è integrata lungo il raggio di vista. Nell'originale era misurata rispetto all'altezza della telecamera e si spostava con lei.
+- Foschia a terra e foschia di base partono da **Mist start** (1800): intorno al personaggio l'aria resta pulita.
 - Banchi di foschia che si muovono lentamente (**Mist patches**, **Mist drift**) al posto di un gradiente uniforme.
 - La luna schiarisce la nebbia quando la si guarda di fronte (**Fog moon glow**) e le sorgenti di luce hanno un alone (**Fog light halos**).
 - Nebbia sul cielo calcolata dalla direzione di vista: l'orizzonte non si sposta più inclinando la telecamera.
@@ -35,7 +36,7 @@ A mano: copia la cartella del repository in `shaders/dans-curse-v2/` accanto all
 - In lontananza resta la luce diffusa; spariscono solo ombre e occlusione. Nell'originale oltre una certa distanza tutto diventava un grigio piatto.
 - Bagliore solo sulle vere sorgenti di luce (piccole e molto più luminose di ciò che hanno intorno). Nell'originale anche superfici arancioni grandi, come le zucche, diventavano luci.
 
-I nomi dei parametri sono quelli dell'originale (`DC_*`), più i nuovi: `DC_RELIGHT`, `DC_TEMPORAL`, `DC_FOG_BRIGHT`, `DC_HAZE`, `DC_FOG_MOON`, `DC_FOG_LIGHTS`, `DC_MIST_NOISE`, `DC_MIST_SPEED`, `DC_FOG_EDGE`, `DC_FOG_END`. `DC_FOG` ora va da 0 a 1 (opacità massima della nebbia di distanza).
+I nomi dei parametri sono quelli dell'originale (`DC_*`), più i nuovi: `DC_RELIGHT`, `DC_TEMPORAL`, `DC_FOG_BRIGHT`, `DC_HAZE`, `DC_FOG_MOON`, `DC_FOG_LIGHTS`, `DC_MIST_NOISE`, `DC_MIST_SPEED`, `DC_FOG_EDGE`, `DC_FOG_END`, `DC_MIST_START`. `DC_FOG` ora va da 0 a 1 (opacità massima della nebbia di distanza).
 
 ## Struttura
 
