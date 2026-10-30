@@ -1,0 +1,12 @@
+#version 450
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Dan's Curse V2 - glow_blur_v.slang
+// Basato su Dan's Curse di flaffymg, modificato con il permesso dell'autore.
+// Author (V2): https://github.com/Leproide - licenza delle modifiche: GPL-3.0-or-later
+
+
+#include "common.inc"
+
+#define BLUR_AXIS vec2(0.0, 1.0)
+#define BLUR_SPREAD global.DC_GLOW_RADIUS
+#include "blur.inc"
