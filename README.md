@@ -30,13 +30,18 @@ A mano: copia la cartella del repository in `shaders/dans-curse-v2/` accanto all
 - Il passaggio interno/esterno cambia inizio e densità della nebbia molto meno, senza "pompare" quando si guarda in alto o in basso.
 - Limite di disegno nascosto (**Draw distance fade**): il gioco disegna il terreno a blocchi fino a una certa distanza e copre il taglio sfumando al nero. Con la nebbia chiara dell'originale i bordi dei blocchi e il vuoto dietro diventavano figure squadrate e tagli netti. Ora la geometria vicina al limite e il vuoto sotto l'orizzonte arrivano allo stesso colore della nebbia, solo nelle scene aperte.
 
+**Luci delle fiamme e delle magie**
+- Le sorgenti di luce (fiamme, scintille, magie: il runtime trasforma in luce ogni sprite luminoso del gioco) illuminano davvero: attenuazione marcata vicino alla sorgente, lato rivolto alla luce più chiaro dell'altro, riflesso speculare (**Light source shine**) e una parte che scalda oltre la luce del gioco e accende il bloom (**Light source heat**).
+- Le luci color fuoco tremolano (**Fire flicker**), ognuna per conto suo.
+- Ombre delle sorgenti di luce (**Light source shadows**): per ogni punto si guarda la luce che conta di più e si controlla se qualcosa si mette in mezzo. Vicino alla luce gli ostacoli sono ignorati, così torce e bracieri non oscurano la propria fiamma. Filtrate nel tempo come le altre ombre (nuovo pass `lightshadow.slang`).
+
 **Illuminazione**
 - La luce già presente nei colori del gioco viene modulata invece di essere moltiplicata da zero (**Relighting strength**): le zone in ombra restano leggibili invece di diventare fango.
 - Ombre di contatto e occlusione ambientale filtrate nel tempo (**Temporal smoothing**), con riproiezione tramite la telecamera del frame precedente: niente più motivo a puntini.
 - In lontananza resta la luce diffusa; spariscono solo ombre e occlusione. Nell'originale oltre una certa distanza tutto diventava un grigio piatto.
 - Bagliore solo sulle vere sorgenti di luce (piccole e molto più luminose di ciò che hanno intorno). Nell'originale anche superfici arancioni grandi, come le zucche, diventavano luci.
 
-I nomi dei parametri sono quelli dell'originale (`DC_*`), più i nuovi: `DC_RELIGHT`, `DC_TEMPORAL`, `DC_FOG_BRIGHT`, `DC_HAZE`, `DC_FOG_MOON`, `DC_FOG_LIGHTS`, `DC_MIST_NOISE`, `DC_MIST_SPEED`, `DC_FOG_EDGE`, `DC_FOG_END`, `DC_MIST_START`. `DC_FOG` ora va da 0 a 1 (opacità massima della nebbia di distanza).
+I nomi dei parametri sono quelli dell'originale (`DC_*`), più i nuovi: `DC_RELIGHT`, `DC_TEMPORAL`, `DC_FOG_BRIGHT`, `DC_HAZE`, `DC_FOG_MOON`, `DC_FOG_LIGHTS`, `DC_MIST_NOISE`, `DC_MIST_SPEED`, `DC_FOG_EDGE`, `DC_FOG_END`, `DC_MIST_START`, `DC_LIGHT_SHINE`, `DC_LIGHT_HOT`, `DC_FLICKER`, `DC_LIGHT_SHADOWS`. `DC_FOG` ora va da 0 a 1 (opacità massima della nebbia di distanza).
 
 ## Struttura
 
@@ -44,12 +49,13 @@ I nomi dei parametri sono quelli dell'originale (`DC_*`), più i nuovi: `DC_RELI
 |---|---|---|
 | 0 | `geometry.slang` | normali e occlusione ambientale dalla profondità |
 | 1 | `occlusion.slang` | ombre di contatto e accumulo temporale (nuovo) |
-| 2-6 | `emissive.slang`, `glow_blur_*` | bagliore delle sorgenti di luce |
-| 7 | `shafts.slang` | raggi di luna |
-| 8 | `sky.slang` | cielo, interno/esterno, limite di disegno, pavimento, colore della nebbia (4x1) |
-| 9 | `composite.slang` | illuminazione, acqua, nebbia |
-| 10-12 | `bloom_*` | bloom |
-| 13 | `final.slang` | tonemap e colore |
+| 2 | `lightshadow.slang` | ombre delle sorgenti di luce, accumulo temporale (nuovo) |
+| 3-7 | `emissive.slang`, `glow_blur_*` | bagliore delle sorgenti di luce |
+| 8 | `shafts.slang` | raggi di luna |
+| 9 | `sky.slang` | cielo, interno/esterno, limite di disegno, pavimento, colore della nebbia (4x1) |
+| 10 | `composite.slang` | illuminazione, luci puntiformi, acqua, nebbia |
+| 11-13 | `bloom_*` | bloom |
+| 14 | `final.slang` | tonemap e colore |
 
 ## Licenza
 

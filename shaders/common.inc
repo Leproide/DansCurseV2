@@ -35,8 +35,12 @@
 #pragma parameter DC_CURSE "Curse" 0.4 0.0 1.0 0.05
 #pragma parameter DC_CAVE "Indoor darkness" 0.6 0.0 1.0 0.05
 #pragma parameter DC_DESATURATION "Dark desaturation" 0.4 0.0 1.0 0.05
-#pragma parameter DC_SCENE_LIGHTS "Light sources" 0.8 0.0 4.0 0.1
+#pragma parameter DC_SCENE_LIGHTS "Light sources" 1.4 0.0 4.0 0.1
 #pragma parameter DC_LIGHT_RANGE "Light source range" 1.15 0.25 4.0 0.05
+#pragma parameter DC_LIGHT_SHINE "Light source shine" 0.5 0.0 2.0 0.05
+#pragma parameter DC_LIGHT_HOT "Light source heat" 0.7 0.0 2.0 0.05
+#pragma parameter DC_FLICKER "Fire flicker" 0.5 0.0 1.0 0.05
+#pragma parameter DC_LIGHT_SHADOWS "Light source shadows" 0.6 0.0 1.0 0.05
 #pragma parameter DC_GLOW "Emissive glow" 1.6 0.0 4.0 0.1
 #pragma parameter DC_GLOW_RADIUS "Emissive glow radius" 1.4 0.5 2.0 0.05
 #pragma parameter DC_WATER_DENSITY "Water density" 1.6 0.0 5.0 0.05
@@ -122,6 +126,10 @@ layout(std140, set = 0, binding = 0) uniform UBO
     float DC_DESATURATION;
     float DC_SCENE_LIGHTS;
     float DC_LIGHT_RANGE;
+    float DC_LIGHT_SHINE;
+    float DC_LIGHT_HOT;
+    float DC_FLICKER;
+    float DC_LIGHT_SHADOWS;
     float DC_GLOW;
     float DC_GLOW_RADIUS;
     float DC_WATER_DENSITY;
@@ -332,7 +340,8 @@ vec3 sunDir()
     float pitch = radians(global.DC_SUN_PITCH);
     vec3 w = vec3(cos(pitch) * sin(yaw), -sin(pitch), cos(pitch) * cos(yaw));
     vec3 manual = global.CameraAvailable > 0.5 ? toView(w) : vec3(w.xy, -w.z);
-    if (!gameLight()) return normalize(manual);
+    // se viene passato solo il colore della luce (direzione nulla) si tiene la direzione manuale
+    if (!gameLight() || dot(global.SceneSunDirection.xyz, global.SceneSunDirection.xyz) < 0.25) return normalize(manual);
     return normalize(mix(manual, toView(global.SceneSunDirection.xyz), global.DC_GAME_LIGHT));
 }
 

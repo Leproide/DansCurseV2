@@ -23,10 +23,11 @@ layout(set = 0, binding = 5) uniform sampler2D Original;
 layout(set = 0, binding = 6) uniform sampler2D SceneLights;
 layout(set = 0, binding = 7) uniform sampler2D Shafts;
 layout(set = 0, binding = 8) uniform sampler2D Occlusion;
+layout(set = 0, binding = 9) uniform sampler2D LightShadow;
 
 #include "vertex.inc"
+#include "lights.inc"
 
-const int MAX_LIGHTS = 32;
 const vec3 WARM_LIGHT = vec3(1.0, 0.86, 0.68);
 const vec3 COOL_LIGHT = vec3(0.70, 0.85, 1.0);
 const float GLOW_GAIN = 8.0;
@@ -89,27 +90,51 @@ Surface gather(vec2 uv, float z)
     return surface;
 }
 
-vec3 sceneLights(vec3 p, vec3 n)
+// Luci puntiformi: diffusa con il lato rivolto alla luce, riflesso speculare, ombra della
+// luce dominante (pass LightShadow) e tremolio del fuoco. Nella V1 e nelle prime V2 la luce
+// era un alone piatto (25% fisso, nessun riflesso) compresso verso 1: le zone illuminate
+// erano solo un po' piu' chiare.
+struct LocalLight
 {
-    vec3 sum = vec3(0.0);
-    int count = min(int(global.SceneLightCount + 0.5), MAX_LIGHTS);
+    vec3 diffuse;
+    vec3 shine;
+};
+
+LocalLight sceneLights(vec3 p, vec3 n, vec3 v, vec2 uv)
+{
+    LocalLight result;
+    result.diffuse = vec3(0.0);
+    result.shine = vec3(0.0);
+    int count = lightCount();
+    if (count == 0 || global.DC_SCENE_LIGHTS <= 0.0) return result;
+
+    vec4 shadowData = texture(LightShadow, uv);
+    int shadowed = global.DC_LIGHT_SHADOWS > 0.0 ? dominantLight(p) : -1;
+    float shadow = mix(1.0, shadowData.x, global.DC_LIGHT_SHADOWS);
+
     for (int i = 0; i < count; i++)
     {
-        vec4 placement = texelFetch(SceneLights, ivec2(i * 2, 0), 0);
-        vec3 color = texelFetch(SceneLights, ivec2(i * 2 + 1, 0), 0).rgb;
-        float radius = placement.w * global.DC_LIGHT_RANGE;
-        vec3 toLight = placement.xyz - p;
+        PointLight light = lightAt(i);
+        vec3 toLight = light.position - p;
         float distance = length(toLight);
-        if (distance >= radius || radius <= 0.0) continue;
+        float falloff = attenuation(distance, light.radius);
+        if (falloff <= 0.0) continue;
 
-        float falloff = 1.0 - distance / radius;
-        falloff *= falloff;
-        float facing = max(dot(n, toLight / max(distance, 1e-3)), 0.0) * 0.75 + 0.25;
-        sum += toLinear(color) * falloff * facing;
+        vec3 l = toLight / max(distance, 1e-3);
+        float ndl = clamp((dot(n, l) + 0.1) / 1.1, 0.0, 1.0);
+        vec3 h = normalize(l + v);
+        float spec = pow(max(dot(n, h), 0.0), 28.0) * ndl;
+        float energy = falloff * flicker(light) * (i == shadowed ? shadow : 1.0);
+
+        result.diffuse += light.color * energy * ndl;
+        result.shine += light.color * energy * spec;
     }
 
-    sum *= global.DC_SCENE_LIGHTS;
-    return sum / (1.0 + luma(sum));
+    result.diffuse *= global.DC_SCENE_LIGHTS;
+    result.shine *= global.DC_SCENE_LIGHTS * global.DC_LIGHT_SHINE;
+    // compressione morbida: molte luci vicine non bruciano, una sola resta forte
+    result.diffuse /= 1.0 + luma(result.diffuse) * 0.35;
+    return result;
 }
 
 bool hasWaterLevel()
@@ -299,18 +324,17 @@ vec3 lightHalos(vec3 dir, float dist)
 {
     if (global.DC_FOG_LIGHTS <= 0.0) return vec3(0.0);
     vec3 sum = vec3(0.0);
-    int count = min(int(global.SceneLightCount + 0.5), 32);
+    int count = lightCount();
     for (int i = 0; i < count; i++)
     {
-        vec4 placement = texelFetch(SceneLights, ivec2(i * 2, 0), 0);
-        vec3 color = texelFetch(SceneLights, ivec2(i * 2 + 1, 0), 0).rgb;
+        PointLight light = lightAt(i);
         // alone stretto attorno alla luce (un quarto del suo raggio d'azione)
-        float radius = placement.w * global.DC_LIGHT_RANGE * 0.25;
+        float radius = light.radius * 0.25;
         if (radius <= 0.0) continue;
-        float t = clamp(dot(placement.xyz, dir), 0.0, dist);
-        float miss = length(placement.xyz - dir * t);
+        float t = clamp(dot(light.position, dir), 0.0, dist);
+        float miss = length(light.position - dir * t);
         float halo = max(1.0 - miss / radius, 0.0);
-        sum += toLinear(color) * halo * halo * halo;
+        sum += light.color * halo * halo * halo * flicker(light);
     }
 
     sum *= global.DC_FOG_LIGHTS * 0.15;
@@ -412,6 +436,7 @@ void main()
 
     tint = mix(tint, CURSE_TINT / luma(CURSE_TINT), global.DC_CURSE * 0.35);
 
+    vec3 albedo = color;
     vec3 p = viewPos(vTexCoord, d);
     vec3 v = -normalize(p);
     Surface surface = gather(vTexCoord, p.z);
@@ -448,7 +473,8 @@ void main()
     }
 
     vec3 interior = mix(vec3(1.0), CURSE_TINT, global.DC_CURSE * 0.5) * mix(1.0, 0.4, global.DC_CAVE) * (1.0 - skylightSqr);
-    vec3 local = sceneLights(p, n) + glow * mix(1.0, 1.6, indoor);
+    LocalLight lamps = sceneLights(p, n, v, vTexCoord);
+    vec3 local = lamps.diffuse + glow * mix(1.0, 1.6, indoor);
     vec3 lighting = (scene + interior) * ao + local * mix(1.0, ao, 0.5);
 
     // modulazione: 1 = luce media della scena. 0.5 tiene la stessa esposizione della V1.
@@ -459,6 +485,11 @@ void main()
     vec3 h = normalize(l + v);
     float specular = pow(max(dot(n, h), 0.0), GLOSS) * SPECULAR * global.DC_SPECULAR * 4.0;
     color += sun * specular * sunlit * skylightSqr * luma(color);
+
+    // luci puntiformi: riflesso e una parte additiva oltre la modulazione, cosi' vicino
+    // alle fiamme le superfici si scaldano davvero e il bloom si accende
+    color += lamps.shine * (0.25 + luma(albedo)) * ao;
+    color += lamps.diffuse * albedo * global.DC_LIGHT_HOT * 0.6 * ao;
 
     if (inWater(p)) color = shadeWater(color, relight, p, l, moonlight, ambient, fogColor + sky * 0.5);
 
