@@ -46,10 +46,11 @@
 #pragma parameter DC_WATER_DEBUG "Water debug" 0.0 0.0 2.0 1.0
 #pragma parameter DC_SHAFTS "Moon shafts" 0.2 0.0 3.0 0.05
 #pragma parameter DC_SHAFT_LENGTH "Moon shaft length" 0.4 0.1 1.0 0.05
-#pragma parameter DC_FOG "Fog" 0.6 0.0 3.0 0.02
-#pragma parameter DC_FOG_START "Fog start" 2600.0 0.0 20000.0 100.0
+#pragma parameter DC_FOG "Fog" 0.85 0.0 1.0 0.05
+#pragma parameter DC_FOG_START "Fog start" 4500.0 0.0 30000.0 100.0
+#pragma parameter DC_FOG_END "Fog end" 14000.0 500.0 40000.0 250.0
 #pragma parameter DC_FOG_BRIGHT "Fog brightness" 0.08 0.01 0.4 0.01
-#pragma parameter DC_HAZE "Base haze" 0.2 0.0 1.0 0.05
+#pragma parameter DC_HAZE "Base haze" 0.08 0.0 1.0 0.02
 #pragma parameter DC_FOG_MOON "Fog moon glow" 0.6 0.0 3.0 0.05
 #pragma parameter DC_FOG_LIGHTS "Fog light halos" 0.8 0.0 3.0 0.05
 #pragma parameter DC_FOG_EDGE "Draw distance fade" 1.0 0.0 1.0 0.05
@@ -131,6 +132,7 @@ layout(std140, set = 0, binding = 0) uniform UBO
     float DC_SHAFT_LENGTH;
     float DC_FOG;
     float DC_FOG_START;
+    float DC_FOG_END;
     float DC_FOG_BRIGHT;
     float DC_HAZE;
     float DC_FOG_MOON;

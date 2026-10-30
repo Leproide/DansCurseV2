@@ -327,15 +327,14 @@ Fog computeFog(vec3 dir, float dist, bool sky, float indoor, vec3 fogColor, vec3
     Fog f;
     vec3 ray = worldRay(dir);
 
-    // nebbia di distanza: parte da DC_FOG_START con un attacco morbido
+    // nebbia di distanza lineare: 0 a DC_FOG_START, DC_FOG (opacita' massima) a DC_FOG_END
     float cave = indoor * global.DC_CAVE;
-    float start = global.DC_FOG_START * mix(1.0, 0.75, cave);
+    float start = global.DC_FOG_START * mix(1.0, 0.85, cave);
     if (global.SceneFogRange.y > global.SceneFogRange.x)
         start = mix(start, min(start, global.SceneFogRange.x), global.DC_GAME_LIGHT);
-    float density = global.DC_FOG * (1.0 + 0.5 * cave);
-    float past = max(dist - start, 0.0);
-    float distanceFog = 1.0 - exp(-past * density * 0.001 * smoothstep(0.0, 800.0, past));
-    float haze = (1.0 - exp(-dist * density * 0.00005)) * global.DC_HAZE;
+    float end = max(global.DC_FOG_END * mix(1.0, 0.85, cave), start + 100.0);
+    float distanceFog = clamp((dist - start) / (end - start), 0.0, 1.0) * global.DC_FOG;
+    float haze = (1.0 - exp(-dist * 0.00005)) * global.DC_HAZE;
     float amount = max(distanceFog, haze);
 
     // Limite di disegno: il gioco disegna il terreno a blocchi fino a una certa distanza e
@@ -347,7 +346,7 @@ Fog computeFog(vec3 dir, float dist, bool sky, float indoor, vec3 fogColor, vec3
     float open = smoothstep(0.02, 0.1, extent.y) * global.DC_FOG_EDGE;
     float far = extent.x;
     if (!sky && far > 500.0)
-        amount = max(amount, smoothstep(far * 0.6, far * 0.97, dist) * open);
+        amount = max(amount, smoothstep(far * 0.82, far * 0.99, dist) * open);
 
     if (sky)
     {

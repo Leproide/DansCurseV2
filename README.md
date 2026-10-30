@@ -14,9 +14,12 @@ Dal gioco: **Mods → Explore Mod Hub → Dan's Curse V2**. Poi accendi la mod *
 
 A mano: copia la cartella del repository in `shaders/dans-curse-v2/` accanto all'eseguibile.
 
+**Consigliato:** in **Settings → Display** porta **Draw distance** a **3.00x**. Il gioco disegna il terreno solo fino a una distanza breve; la nebbia nasconde il limite di disegno, quindi con la distanza normale gli oggetti un po' lontani (recinzioni, lapidi) restano mezzi coperti. A 3x la nebbia copre solo il fondo della scena.
+
 ## Cosa cambia rispetto all'originale
 
 **Nebbia**
+- Nebbia di distanza lineare tra **Fog start** e **Fog end** (4500 e 14000 di default): parte più lontano e cresce in modo uniforme. **Fog** è l'opacità massima. Nell'originale era esponenziale e partiva a 2600.
 - Colore stabile: viene dal cielo visibile e cambia solo quando il cielo si vede bene. Nell'originale era la media dello schermo, quindi diventava il colore dei muri appena il cielo usciva dall'inquadratura.
 - Luminosità regolabile (**Fog brightness**). Nell'originale era limitata a un valore fisso molto basso e in lontananza la nebbia diventava quasi nera.
 - Foschia a terra appoggiata al pavimento: la quota del pavimento viene stimata dalle superfici visibili e la densità è integrata lungo il raggio di vista. Nell'originale era misurata rispetto all'altezza della telecamera e si spostava con lei.
@@ -32,7 +35,7 @@ A mano: copia la cartella del repository in `shaders/dans-curse-v2/` accanto all
 - In lontananza resta la luce diffusa; spariscono solo ombre e occlusione. Nell'originale oltre una certa distanza tutto diventava un grigio piatto.
 - Bagliore solo sulle vere sorgenti di luce (piccole e molto più luminose di ciò che hanno intorno). Nell'originale anche superfici arancioni grandi, come le zucche, diventavano luci.
 
-I nomi dei parametri sono quelli dell'originale (`DC_*`), più i nuovi: `DC_RELIGHT`, `DC_TEMPORAL`, `DC_FOG_BRIGHT`, `DC_HAZE`, `DC_FOG_MOON`, `DC_FOG_LIGHTS`, `DC_MIST_NOISE`, `DC_MIST_SPEED`, `DC_FOG_EDGE`.
+I nomi dei parametri sono quelli dell'originale (`DC_*`), più i nuovi: `DC_RELIGHT`, `DC_TEMPORAL`, `DC_FOG_BRIGHT`, `DC_HAZE`, `DC_FOG_MOON`, `DC_FOG_LIGHTS`, `DC_MIST_NOISE`, `DC_MIST_SPEED`, `DC_FOG_EDGE`, `DC_FOG_END`. `DC_FOG` ora va da 0 a 1 (opacità massima della nebbia di distanza).
 
 ## Struttura
 
