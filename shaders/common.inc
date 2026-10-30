@@ -41,7 +41,7 @@
 #pragma parameter DC_GLOW_RADIUS "Emissive glow radius" 1.4 0.5 2.0 0.05
 #pragma parameter DC_WATER_DENSITY "Water density" 1.6 0.0 5.0 0.05
 #pragma parameter DC_WATER_REFLECT "Water reflections" 0.5 0.0 1.0 0.05
-#pragma parameter DC_WATER_WAVES "Water waves" 1.0 0.0 3.0 0.05
+#pragma parameter DC_WATER_WAVES "Water waves" 1.5 0.0 3.0 0.05
 #pragma parameter DC_WATER_CAUSTICS "Water caustics" 0.35 0.0 2.0 0.05
 #pragma parameter DC_WATER_DEBUG "Water debug" 0.0 0.0 2.0 1.0
 #pragma parameter DC_SHAFTS "Moon shafts" 0.2 0.0 3.0 0.05
