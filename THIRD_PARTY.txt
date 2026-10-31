@@ -23,7 +23,6 @@ This shader is a mashup of all the mentioned above, i am not a very good shader 
 - flaffy
 Dan's Curse V2:
 
-- Basato su Dan's Curse di flaffymg (https://github.com/flafmg/DansCurse), modificato con il
-  permesso dell'autore. Le modifiche della V2 sono di https://github.com/Leproide e sono
-  rilasciate sotto GPL-3.0-or-later (vedi LICENSE).
+- Basato su Dan's Curse di flaffymg (https://github.com/flafmg/DansCurse), modificato per una migliore resa grafica. 
+  Le modifiche della V2 sono di https://github.com/Leproide e sono rilasciate sotto GPL-3.0-or-later (vedi LICENSE).
 - Fase di Henyey-Greenstein: L. G. Henyey, J. L. Greenstein, "Diffuse radiation in the Galaxy" (1941).
