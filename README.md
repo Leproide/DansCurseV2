@@ -6,7 +6,7 @@
 
 # Dan's Curse V2
 
-Shader per [MediEvilRecomp ITA](https://github.com/Leproide/MediEvilRecomp-ITA), basato su [Dan's Curse](https://github.com/flafmg/DansCurse) di flaffymg e modificato con il permesso dell'autore. Rifà nebbia e illuminazione: luci, ombre, bagliori, raggi di luna, cielo e acqua con onde restano quelli dell'originale.
+Shader per [MediEvilRecomp ITA](https://github.com/Leproide/MediEvilRecomp-ITA), basato su [Dan's Curse](https://github.com/flafmg/DansCurse) di flaffymg e modificato per una migliore resa grafica. Rifà nebbia e illuminazione: luci, ombre, bagliori, raggi di luna, cielo e acqua con onde restano quelli dell'originale.
 
 ## Installazione
 
