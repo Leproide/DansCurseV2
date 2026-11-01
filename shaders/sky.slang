@@ -6,7 +6,8 @@
 //
 // Uscita 4x1, ogni texel si aggiorna lentamente rispetto al frame precedente:
 //  0: colore medio del cielo visibile, a = apertura (0 interno, 1 esterno)
-//  1: x = distanza massima della geometria (limite di disegno), y = quota di vuoto, z = quota di scena
+//  1: x = limite di disegno (dal gioco se disponibile, altrimenti stimato e stabile),
+//     y = quota di vuoto sotto l'orizzonte, z = quota di scena
 //  2: x = altezza del pavimento nel mondo (Y verso il basso), y = valida
 //  3: colore stabile per la nebbia: cambia solo quando si vede abbastanza cielo
 // Nella V1 il colore della nebbia veniva dalla media dello schermo (anche dai muri quando il
@@ -20,12 +21,25 @@ layout(set = 0, binding = 4) uniform sampler2D Geometry;
 
 #include "vertex.inc"
 
+// componente verso il basso del raggio di vista nel mondo (Y verso il basso)
+float rayDown(vec2 uv)
+{
+    vec3 dir = normalize(vec3((uv - global.Projection.zw) * global.Projection.xy, 1.0));
+    return global.CameraAvailable > 0.5 ? normalize(toWorldDirection(dir)).y : -dir.y;
+}
+
 const int GRID_X = 24;
 const int GRID_Y = 16;
 const float UPPER = 0.45;
 const float SKY_RATE = 0.015;
 const float FOG_RATE = 0.01;
 const float GROUND_RATE = 0.04;
+// stima del limite di disegno senza il dato del gioco: sale in fretta, scende molto piano
+// (davanti a un muro la geometria visibile e' vicina, ma il limite di disegno non cambia)
+const float FAR_RISE = 0.2;
+const float FAR_FALL = 0.002;
+// vuoto sotto l'orizzonte: raggio che scende di almeno questa quota (Y verso il basso)
+const float BELOW = 0.03;
 
 struct Survey
 {
@@ -40,6 +54,7 @@ struct Survey
     float floorWeight;
     float far;
     float samples;
+    float below;
 };
 
 Survey survey()
@@ -56,6 +71,7 @@ Survey survey()
     s.floorWeight = 0.0;
     s.far = 0.0;
     s.samples = 0.0;
+    s.below = 0.0;
 
     for (int y = 0; y < GRID_Y; y++)
     for (int x = 0; x < GRID_X; x++)
@@ -77,6 +93,7 @@ Survey survey()
 
         if (global.DepthAvailable > 0.5 && !geometry)
         {
+            if (rayDown(uv) > BELOW) s.below += 1.0;
             s.sky += c;
             s.skyCount += 1.0;
             continue;
@@ -124,13 +141,20 @@ void main()
     if (vTexCoord.x < 0.5)
     {
         float presence = s.geometry / float(GRID_X * GRID_Y);
-        float empty = s.samples > 0.0 ? 1.0 - s.geometry / s.samples : 0.0;
-        if (!hasPrevious) FragColor = vec4(s.far, empty, presence, 1.0);
+        float below = s.samples > 0.0 ? s.below / s.samples : 0.0;
+
+        // limite di disegno del gioco (patch del fork), accettato solo se la geometria visibile
+        // non va molto oltre: se le unita' non tornassero si usa la stima
+        float game = global.SceneViewDistance.y > 0.5 ? global.SceneViewDistance.x : 0.0;
+        bool useGame = game > 500.0 && s.far < game * 1.25;
+
+        if (!hasPrevious) FragColor = vec4(useGame ? game : s.far, below, presence, 1.0);
         else
         {
-            // il limite di disegno sale piano e scende in fretta (porte, svolte)
-            float far = s.far > previous.x ? mix(previous.x, s.far, 0.05) : mix(previous.x, s.far, 0.25);
-            FragColor = vec4(far, mix(previous.y, empty, 0.05), mix(previous.z, presence, 0.35), 1.0);
+            float far = useGame ? mix(previous.x, game, 0.25)
+                      : s.far > previous.x ? mix(previous.x, s.far, FAR_RISE)
+                      : mix(previous.x, s.far, FAR_FALL);
+            FragColor = vec4(far, mix(previous.y, below, 0.05), mix(previous.z, presence, 0.35), 1.0);
         }
         return;
     }

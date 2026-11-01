@@ -346,9 +346,17 @@ struct Fog
     float amount;
     vec3 color;
     vec3 halos;
+    float edge;   // sfumatura al nero del limite di disegno (dopo la nebbia)
 };
 
-Fog computeFog(vec3 dir, float dist, bool sky, float indoor, vec3 fogColor, vec3 moonlight, vec3 l)
+// colore del vuoto oltre il limite di disegno: quasi nero come nel gioco originale,
+// con appena un filo del colore della nebbia per non staccare
+vec3 voidColor(vec3 fogColor)
+{
+    return fogColor * 0.06;
+}
+
+Fog computeFog(vec3 dir, float dist, float depth, bool sky, float indoor, vec3 fogColor, vec3 moonlight, vec3 l)
 {
     Fog f;
     vec3 ray = worldRay(dir);
@@ -364,22 +372,24 @@ Fog computeFog(vec3 dir, float dist, bool sky, float indoor, vec3 fogColor, vec3
     float amount = max(distanceFog, haze);
 
     // Limite di disegno: il gioco disegna il terreno a blocchi fino a una certa distanza e
-    // nasconde il taglio sfumando al nero. Con una nebbia chiara i bordi dei blocchi e il
-    // vuoto dietro diventano figure squadrate: qui la geometria vicina al limite e il vuoto
-    // sotto l'orizzonte arrivano allo stesso colore della nebbia. Solo se sullo schermo c'e'
-    // del vuoto (scene aperte): in una stanza chiusa i muri in fondo non vanno nascosti.
+    // nasconde il taglio sfumando al nero. Come nell'originale, la geometria vicina al limite
+    // e il vuoto sotto l'orizzonte vanno verso il nero (non verso il colore della nebbia,
+    // che faceva galleggiare gli oggetti su un fondo grigio). Solo se sullo schermo c'e'
+    // vuoto sotto l'orizzonte: davanti a un muro o in una stanza non si sfuma niente.
     vec4 extent = texture(Sky, SCENE_TEXEL);
-    float open = smoothstep(0.02, 0.1, extent.y) * global.DC_FOG_EDGE;
+    float open = smoothstep(0.01, 0.05, extent.y) * global.DC_FOG_EDGE;
     float far = extent.x;
+    f.edge = 0.0;
     if (!sky && far > 500.0)
-        amount = max(amount, smoothstep(far * 0.82, far * 0.99, dist) * open);
+        f.edge = smoothstep(far * 0.78, far * 0.98, depth) * open;
 
+    float up = -ray.y;
     if (sky)
     {
-        // cielo: poca nebbia in alto, piena verso l'orizzonte e nel vuoto sotto di esso
-        float up = -ray.y;
+        // cielo: poca nebbia in alto, di piu' verso l'orizzonte; sotto l'orizzonte e' vuoto
         float horizon = 1.0 - smoothstep(-0.02, 0.3, up);
-        amount = mix(global.DC_FOG_SKY * 0.3, max(global.DC_FOG_SKY, open), horizon);
+        amount = mix(global.DC_FOG_SKY * 0.3, global.DC_FOG_SKY, horizon);
+        f.edge = open * (1.0 - smoothstep(-0.12, -0.01, up));
     }
 
     float ground = mist(ray, sky ? 6000.0 : dist);
@@ -418,11 +428,14 @@ void main()
     if (!hasGeometry(d))
     {
         vec3 dir = normalize(vec3((vTexCoord - global.Projection.zw) * global.Projection.xy, 1.0));
-        Fog f = computeFog(dir, 6000.0, true, indoor, fogColor, moonlight, l);
+        Fog f = computeFog(dir, 6000.0, 6000.0, true, indoor, fogColor, moonlight, l);
         float toward = max(dot(dir, l), 0.0);
         float scatter = pow(toward, 6.0) * 0.35 + pow(toward, 48.0) * 0.6;
-        color = mix(color, f.color + glow * 0.03, f.amount) + f.halos;
-        FragColor = vec4(color + moonlight * scatter * global.DC_SHAFTS * 0.12 + beams * 0.55, 1.0);
+        color = mix(color, f.color + glow * 0.03, f.amount);
+        color += moonlight * scatter * global.DC_SHAFTS * 0.12 + beams * 0.55;
+        color = mix(color, voidColor(fogColor), f.edge) + f.halos * (1.0 - 0.5 * f.edge);
+        if (global.DC_FOG_DEBUG > 0.5) color = mix(color, vec3(0.0, 0.0, 1.0), f.edge * 0.6);
+        FragColor = vec4(color, 1.0);
         return;
     }
 
@@ -498,9 +511,18 @@ void main()
                 darkness * global.DC_DESATURATION * 0.6);
 
     float dist = length(p);
-    Fog f = computeFog(-v, dist, false, indoor, fogColor, moonlight, l);
-    color = mix(color, f.color + glow * 0.08, f.amount) + f.halos;
+    Fog f = computeFog(-v, dist, p.z, false, indoor, fogColor, moonlight, l);
+    color = mix(color, f.color + glow * 0.08, f.amount);
     color += beams * (0.3 + 0.7 * f.amount);
+    color = mix(color, voidColor(fogColor), f.edge) + f.halos * (1.0 - 0.5 * f.edge);
+
+    // debug: rosso = geometria che sfuma al limite di disegno, verde = oltre il limite
+    if (global.DC_FOG_DEBUG > 0.5)
+    {
+        float far = texture(Sky, SCENE_TEXEL).x;
+        color = mix(color, vec3(1.0, 0.0, 0.0), f.edge * 0.7);
+        if (far > 500.0 && p.z > far) color = mix(color, vec3(0.0, 1.0, 0.0), 0.5);
+    }
 
     if (global.DC_WATER_DEBUG > 0.5)
     {

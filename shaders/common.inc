@@ -64,7 +64,8 @@
 #pragma parameter DC_MIST_NOISE "Mist patches" 0.6 0.0 1.0 0.05
 #pragma parameter DC_MIST_SPEED "Mist drift" 0.5 0.0 3.0 0.05
 #pragma parameter DC_FOG_SKY "Fog over sky" 0.3 0.0 1.0 0.05
-#pragma parameter DC_BLOOM "Bloom" 0.3 0.0 2.0 0.05
+#pragma parameter DC_FOG_DEBUG "Draw distance debug" 0.0 0.0 1.0 1.0
+#pragma parameter DC_BLOOM "Bloom" 0.7 0.0 2.0 0.05
 #pragma parameter DC_BLOOM_THRESHOLD "Bloom threshold" 0.7 0.0 1.0 0.05
 #pragma parameter DC_EXPOSURE "Exposure" 0.15 -2.0 2.0 0.1
 #pragma parameter DC_SATURATION "Saturation" 1.1 0.0 2.0 0.05
@@ -100,6 +101,7 @@ layout(std140, set = 0, binding = 0) uniform UBO
     vec4 SceneIndoor;
     vec4 SceneWaterPlane;
     vec4 SceneWaterLevel;
+    vec4 SceneViewDistance;
     uint FrameCount;
     float Time;
     float PreviousCameraAvailable;
@@ -153,6 +155,7 @@ layout(std140, set = 0, binding = 0) uniform UBO
     float DC_MIST_NOISE;
     float DC_MIST_SPEED;
     float DC_FOG_SKY;
+    float DC_FOG_DEBUG;
     float DC_BLOOM;
     float DC_BLOOM_THRESHOLD;
     float DC_EXPOSURE;
@@ -340,7 +343,7 @@ vec3 sunDir()
     float pitch = radians(global.DC_SUN_PITCH);
     vec3 w = vec3(cos(pitch) * sin(yaw), -sin(pitch), cos(pitch) * cos(yaw));
     vec3 manual = global.CameraAvailable > 0.5 ? toView(w) : vec3(w.xy, -w.z);
-    // se viene passato solo il colore della luce (direzione nulla) si tiene la direzione manuale
+    // il fork ITA passa solo il colore della luce del gioco (direzione nulla): si tiene quella manuale
     if (!gameLight() || dot(global.SceneSunDirection.xyz, global.SceneSunDirection.xyz) < 0.25) return normalize(manual);
     return normalize(mix(manual, toView(global.SceneSunDirection.xyz), global.DC_GAME_LIGHT));
 }
