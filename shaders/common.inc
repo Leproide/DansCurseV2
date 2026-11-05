@@ -65,6 +65,8 @@
 #pragma parameter DC_MIST_SPEED "Mist drift" 0.5 0.0 3.0 0.05
 #pragma parameter DC_FOG_SKY "Fog over sky" 0.3 0.0 1.0 0.05
 #pragma parameter DC_FOG_DEBUG "Draw distance debug" 0.0 0.0 1.0 1.0
+#pragma parameter DC_FOG_OFF "Disable fog" 0.0 0.0 1.0 1.0
+#pragma parameter DC_FOG_KEEP_DARK "Keep game darkness in fog" 1.0 0.0 1.0 0.05
 #pragma parameter DC_BLOOM "Bloom" 0.7 0.0 2.0 0.05
 #pragma parameter DC_BLOOM_THRESHOLD "Bloom threshold" 0.7 0.0 1.0 0.05
 #pragma parameter DC_EXPOSURE "Exposure" 0.15 -2.0 2.0 0.1
@@ -156,6 +158,8 @@ layout(std140, set = 0, binding = 0) uniform UBO
     float DC_MIST_SPEED;
     float DC_FOG_SKY;
     float DC_FOG_DEBUG;
+    float DC_FOG_OFF;
+    float DC_FOG_KEEP_DARK;
     float DC_BLOOM;
     float DC_BLOOM_THRESHOLD;
     float DC_EXPOSURE;

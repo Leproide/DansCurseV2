@@ -383,6 +383,16 @@ Fog computeFog(vec3 dir, float dist, float depth, bool sky, float indoor, vec3 f
     if (!sky && far > 500.0)
         f.edge = smoothstep(far * 0.78, far * 0.98, depth) * open;
 
+    // Taglio del terreno: il gioco scarta i poligoni del terreno che stanno tutti oltre la sua
+    // distanza di disegno (SceneViewDistance, profondita' di vista). Quelli a cavallo restano,
+    // quindi il bordo e' fatto di scalini a forma di quadrato, tutti oltre quella distanza.
+    // Il limite stimato sopra segue gli oggetti piu' lontani (case, recinzioni), che il gioco
+    // disegna oltre il terreno: la sfumatura partiva troppo lontano e gli scalini restavano
+    // visibili contro il vuoto. Qui la geometria arriva al nero gia' alla distanza del gioco.
+    float game = global.SceneViewDistance.y > 0.5 ? global.SceneViewDistance.x : 0.0;
+    if (!sky && game > 500.0)
+        f.edge = max(f.edge, smoothstep(game * 0.72, game * 0.97, depth) * open);
+
     float up = -ray.y;
     if (sky)
     {
@@ -399,7 +409,25 @@ Fog computeFog(vec3 dir, float dist, float depth, bool sky, float indoor, vec3 f
     float toward = phaseToward(dot(dir, l), 0.6);
     f.color = fogColor + moonlight * (0.015 + toward * 0.06) * global.DC_FOG_MOON;
     f.halos = lightHalos(dir, sky ? 6000.0 : dist) * (0.15 + 0.85 * max(f.amount, haze * 2.0));
+
+    // "Disable fog": niente nebbia, foschia, nebbia sul cielo e aloni; restano luci, ombre,
+    // riflessi, acqua e la sfumatura al nero del limite di disegno
+    if (global.DC_FOG_OFF > 0.5)
+    {
+        f.amount = 0.0;
+        f.halos = vec3(0.0);
+    }
     return f;
+}
+
+// vuoto sotto l'orizzonte (buchi e bordi della mappa), nell'originale nero: 0 = no, 1 = si'.
+// Parte appena sotto l'orizzonte: prima valeva solo ben sotto, e il vuoto visto di sbieco
+// (bordi della mappa con la telecamera bassa) prendeva nebbia e restava grigio, staccando dal
+// terreno che il gioco sfuma al nero
+float holeAt(vec2 uv)
+{
+    vec3 dir = normalize(vec3((uv - global.Projection.zw) * global.Projection.xy, 1.0));
+    return smoothstep(0.0, 0.06, worldRay(dir).y);
 }
 
 void main()
@@ -434,7 +462,14 @@ void main()
         color = mix(color, f.color + glow * 0.03, f.amount);
         color += moonlight * scatter * global.DC_SHAFTS * 0.12 + beams * 0.55;
         color = mix(color, voidColor(fogColor), f.edge) + f.halos * (1.0 - 0.5 * f.edge);
-        if (global.DC_FOG_DEBUG > 0.5) color = mix(color, vec3(0.0, 0.0, 1.0), f.edge * 0.6);
+
+        // buchi nel terreno: vuoto visto ben sotto l'orizzonte, nell'originale nero. Il fondo
+        // sfumato al nero (f.edge) vale solo se c'e' molto vuoto sotto l'orizzonte sullo schermo,
+        // quindi un buco piccolo prendeva nebbia e foschia e diventava grigio
+        float hole = holeAt(vTexCoord);
+        color = mix(color, vec3(0.0), hole);
+
+        if (global.DC_FOG_DEBUG > 0.5) color = mix(color, vec3(0.0, 0.0, 1.0), max(f.edge, hole) * 0.6);
         FragColor = vec4(color, 1.0);
         return;
     }
@@ -450,6 +485,13 @@ void main()
     tint = mix(tint, CURSE_TINT / luma(CURSE_TINT), global.DC_CURSE * 0.35);
 
     vec3 albedo = color;
+
+    // il gioco porta al nero il terreno attorno ai buchi e ai bordi della mappa con il colore dei
+    // vertici: li' nebbia, aloni, raggi di luna e riflessi delle luci (aggiunti, non moltiplicati)
+    // rendevano visibili gli scalini dei quadrati contro il vuoto. Sui texel quasi neri del gioco
+    // calano fino a sparire, come nell'originale.
+    float keep = smoothstep(0.002, 0.03, luma(albedo));
+    keep = mix(1.0, keep, global.DC_FOG_KEEP_DARK);
     vec3 p = viewPos(vTexCoord, d);
     vec3 v = -normalize(p);
     Surface surface = gather(vTexCoord, p.z);
@@ -501,7 +543,7 @@ void main()
 
     // luci puntiformi: riflesso e una parte additiva oltre la modulazione, cosi' vicino
     // alle fiamme le superfici si scaldano davvero e il bloom si accende
-    color += lamps.shine * (0.25 + luma(albedo)) * ao;
+    color += lamps.shine * (0.25 + luma(albedo)) * ao * keep;
     color += lamps.diffuse * albedo * global.DC_LIGHT_HOT * 0.6 * ao;
 
     if (inWater(p)) color = shadeWater(color, relight, p, l, moonlight, ambient, fogColor + sky * 0.5);
@@ -512,8 +554,11 @@ void main()
 
     float dist = length(p);
     Fog f = computeFog(-v, dist, p.z, false, indoor, fogColor, moonlight, l);
+
+    f.amount *= keep;
+    f.halos *= keep;
     color = mix(color, f.color + glow * 0.08, f.amount);
-    color += beams * (0.3 + 0.7 * f.amount);
+    color += beams * (0.3 + 0.7 * f.amount) * keep;
     color = mix(color, voidColor(fogColor), f.edge) + f.halos * (1.0 - 0.5 * f.edge);
 
     // debug: rosso = geometria che sfuma al limite di disegno, verde = oltre il limite
